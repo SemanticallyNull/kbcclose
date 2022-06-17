@@ -1,0 +1,206 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="https://unpkg.com/pdf-lib"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css"
+          rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor"
+          crossorigin="anonymous">
+  </head>
+
+  <body>
+    <div class="row" style="height: 100%">
+      <div class="col">
+        <iframe id="pdf" style="width: 100%; height: 100%;"></iframe>
+      </div>
+      <div class="col">
+        <h1>Fill in your details</h1>
+        <fieldset>
+          <legend>Account Numbers</legend>
+          <div class="mb-3">
+            <label for="accountNo1" class="form-label visually-hidden">Account Number 1</label>
+            <input type="text" class="form-control" id="accountNo1" placeholder="IE00ICON99027000000000">
+          </div>
+          <div class="mb-3">
+            <label for="accountNo2" class="form-label visually-hidden">Account Number 2</label>
+            <input type="text" class="form-control" id="accountNo2" placeholder="IE00ICON99027000000000">
+          </div>
+          <div class="mb-3">
+            <label for="accountNo3" class="form-label visually-hidden">Account Number 3</label>
+            <input type="text" class="form-control" id="accountNo3" placeholder="IE00ICON99027000000000">
+          </div>
+          <div class="mb-3">
+            <label for="accountNo4" class="form-label visually-hidden">Account Number 4</label>
+            <input type="text" class="form-control" id="accountNo4" placeholder="IE00ICON99027000000000">
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Transfer Information</legend>
+          <div class="mb-3">
+            <label for="bankName" class="form-label visually-hidden">Bank Name</label>
+            <input type="text" class="form-control" id="bankName" placeholder="Bank Name (e.g. Local Bank)">
+          </div>
+          <div class="mb-3">
+            <label for="iban" class="form-label visually-hidden">IBAN</label>
+            <input type="text" class="form-control" id="iban" placeholder="IBAN (e.g. IE64IRCE92050112345678)">
+          </div>
+          <div class="mb-3">
+            <label for="beneficiaryAcctName" class="form-label visually-hidden">Beneficiary Account Name</label>
+            <input type="text" class="form-control" id="beneficiaryAcctName" placeholder="Beneficiary Account Name (e.g. John Smith)">
+          </div>
+          <div class="row">
+            <div class="col">
+              <div class="mb-3">
+                <label for="name1" class="form-label visually-hidden">Name</label>
+                <input type="text" class="form-control" id="name1" placeholder="Name 1 (e.g. John Smith)">
+              </div>
+            </div>
+            <div class="col">
+              <div class="mb-3">
+                <label for="name2" class="form-label visually-hidden">Name</label>
+                <input type="text" class="form-control" id="name2" placeholder="Name 2 (e.g. Tom Smith)">
+              </div>
+            </div>
+          </div>
+        </fieldset>
+        <button id="goBtn" class="btn btn-large btn-success">Go</button>
+      </div>
+    </div>
+  </body>
+
+  <script type="module">
+    const positions = {
+      acctNo: {
+        startY: 687,
+        gapY: -19,
+      }
+    };
+
+    const kbcAcctRegex = /^IE(\d{2})ICON990270(\d{8})$/
+    const otherFields = ["bankName", "iban", "beneficiaryAcctName", "name1", "name2"]
+
+    const ibanAcctRegex = /^([A-Z]{2}\d{2})([A-Z0-9]{4})(\d{6})(\d{8})$/
+
+    document.getElementById('goBtn').addEventListener('click', () => {
+      const pdfFields = {accounts:{}, bankName: "", iban: "", beneficiaryAcctName: "", name1: "", name2: ""}
+
+      const acctFields = ["accountNo1", "accountNo2", "accountNo3", "accountNo4"]
+      acctFields.forEach((e) => {
+        const acct = document.getElementById(e).value
+        let parsedAcct
+        try {
+          parsedAcct = kbcAcctRegex.exec(acct.toUpperCase())
+        } catch {
+          return
+        }
+
+        if (parsedAcct != null) {
+          pdfFields["accounts"][e] = {
+            firstTwo: parsedAcct[1],
+            acctNo: parsedAcct[2]
+          }
+        }
+      });
+
+      otherFields.forEach((e) => {
+        pdfFields[e] = document.getElementById(e).value
+      })
+
+        createPdf(pdfFields)
+    });
+
+    createPdf({
+      accounts: {
+        a: {
+          firstTwo: "99",
+          acctNo: "12345678",
+        }
+      },
+      bankName: "", iban: "", beneficiaryAcctName: "", name1: "", name2: ""
+    });
+    async function createPdf(fields) {
+      const url = 'kbcform.pdf'
+      const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer())
+
+      const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+      const page = pdfDoc.getPages()[0];
+
+      const courier = await pdfDoc.embedFont(PDFLib.StandardFonts.Courier)
+
+      Object.entries(fields.accounts).forEach(([_, value], index) => {
+        page.drawText(value.firstTwo.split("").join(" "), {
+          x: 172,
+          y: positions.acctNo.startY + (index * positions.acctNo.gapY),
+          font: courier,
+          size: 14,
+        });
+        page.drawText(value.acctNo.split("").join(" "), {
+          x: 293,
+          y: positions.acctNo.startY + (index * positions.acctNo.gapY),
+          font: courier,
+          size: 14,
+        });
+      })
+
+      page.drawText(fields.bankName, {
+        x: 94,
+        y: 536,
+        font: courier,
+        size: 12,
+      });
+
+      page.drawText(fields.beneficiaryAcctName, {
+        x: 155,
+        y: 492,
+        font: courier,
+        size: 12,
+      });
+
+      try {
+        const iban = ibanAcctRegex.exec(fields.iban)
+
+        page.drawText(iban[1].split("").join(" "), {
+          x: 63,
+          y: 510,
+          font: courier,
+          size: 13,
+        });
+        page.drawText(iban[2].split("").join(" "), {
+          x: 132,
+          y: 510,
+          font: courier,
+          size: 13,
+        });
+        page.drawText(iban[3].split("").join(" "), {
+          x: 202,
+          y: 510,
+          font: courier,
+          size: 13,
+        });
+        page.drawText(iban[4].split("").join(" "), {
+          x: 303,
+          y: 510,
+          font: courier,
+          size: 13,
+        });
+      } catch {
+
+      }
+
+      page.drawText(fields.name1, {
+        x: 93,
+        y: 469,
+        font: courier,
+        size: 12,
+      })
+      page.drawText(fields.name2, {
+        x: 360,
+        y: 469,
+        font: courier,
+        size: 12,
+      })
+
+      const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true });
+      document.getElementById('pdf').src = pdfDataUri;
+    }
+  </script>
+</html>
