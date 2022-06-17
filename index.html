@@ -199,6 +199,29 @@
         size: 12,
       })
 
+      page.drawText(fields.name2, {
+        x: 360,
+        y: 469,
+        font: courier,
+        size: 12,
+      })
+
+      let today = (new Date()).toLocaleDateString("en-IE")
+      page.drawText(today, {
+        x: 93,
+        y: 421,
+        font: courier,
+        size: 12,
+      })
+      if (fields.name2 != "") {
+        page.drawText(today, {
+          x: 360,
+          y: 421,
+          font: courier,
+          size: 12,
+        })
+      }
+
       const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true });
       document.getElementById('pdf').src = pdfDataUri;
     }
